@@ -1,0 +1,114 @@
+---
+title: "Final Report: Classification Prediction"
+author: "Grace Petersen"
+date: "May 24, 2023"
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+execute:
+  warning: false
+  echo: false
+from: markdown+emoji 
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+#| label: load-pkgs
+
+# Load packages
+library(tidyverse)
+library(tidymodels)
+library(doMC)
+```
+
+## GitHub Repo
+
+### INSERT LINK HERE
+
+## Data Used
+
+The following exploration uses a data set including nearly 800 feature variables and 10,000 observations. This data set was then split with a 55/45 ratio of training/testing data (5500 training observations, 4500 testing observations).
+
+In this exploration, the goal is to most accurately predict the class of categorical outcome variable y given the features of the provided data set.
+
+## Variable Reduction and Selection Techniques
+
+In order to parse through this data set, I used a Lasso reduction technique to determine which variables most significantly related to my outcome variable, y.
+
+Using an initial kitchen sink recipe, I created and tuned a lasso model, adjusting for near zero variance variables with step_nzv(), addressing missingness with imputation steps, removing identification variables, dummy encoding all nomical predictors, and normalizing all predictors.
+
+```{r}
+#| eval: false
+initial_recipe <- recipe(y ~., data = training) %>%
+  step_rm(id) %>%
+  step_dummy(all_nominal_predictors()) %>% 
+  step_nzv(all_predictors()) %>% 
+  step_normalize(all_predictors()) %>% 
+  step_impute_mean(all_predictors())
+```
+
+After finalizing the most optimal workflow parameters, I collected the variables whose coefficients were not reduced to zero and used those variables as predictors in my final recipe.
+
+## V Fold Cross-Validation
+
+In my exploration, I used the v-fold cross validation technique with five folds and three repeats.
+
+## Recipe Formation
+
+For my most optimal models, I used a recipe incorporating the variables selected from the lasso reduction technique.
+
+This recipe included the following steps in order to correct for potential flaws in the data:
+
+-   step_impute_mean(all_numeric_predictors) to impute all missing numeric values in the data set
+
+-   step_impute_mode(all_factor_predictors()) to impute all missing categorical values in the data set
+
+-   step_corr(all_predictors()) to account for highly correlated variables in the data set
+
+-   step_nzv(all_predictors()) to remove variables with near zero variance
+
+-   step_normalize(all_numeric_predictors()) to center and scale all predictors
+
+-   step_YeoJohnson(all_numeric_predictors() to initiate a Yeo-Johnson transformation which can have the effect of making variable distributions more symmetric.
+
+## Assessment Metric
+
+To evaluate model performance, this report will use measures of ROC/AUC and accuracy.
+
+The AUC-ROC curve is a performance metric that can be used to determine a model's classification performance. ROC is a probability curve, with the AUC representing the the model's ability to distinguish between classes. A higher AUC value represents a greater volume of correct class predictions.
+
+## Second Best Model
+
+The secondmost optimal model was my MARS model.
+
+When tuned, the most optimal parameter combination was num_terms = 10 and prod_degree = 1. Fitted to the training data, this model had an ROC-AUC value of 0.599.
+
+```{r}
+#| label: mars-model
+
+load("results/mars_table")
+
+mars_table
+```
+
+When fitted to our testing data via Kaggle, this model resulted in an ROC-AUC value of 0.58187.
+
+## Best Model Overall
+
+My best model overall was generated using a Random Forest Model.
+
+When tuned, the most optimal parameter combination was mtry = 4 and min_n = 40. Fitted to the training data, this model resulted in an ROC-AUC value of 0.597.
+
+```{r}
+#| label: rf-table
+
+load("results/rf_table")
+
+rf_table
+```
+
+When fitted to the testing data, this model surpassed the 0.583 threshold with an ROC-AUC value of 0.59814.

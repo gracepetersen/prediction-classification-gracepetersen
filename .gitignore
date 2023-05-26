@@ -10,6 +10,8 @@
 # if you have other file types then use appropriate extension data/*.rds
 data/*.csv
 
+find . -size +100M | cat >> .gitignore
+
 # mac related files
 .DS_Store
 **/.DS_Store
